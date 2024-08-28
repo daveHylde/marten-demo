@@ -8,14 +8,15 @@ public static class EmployeeEndPoints
 {
   public static void MapForseEmployeeEndpoints(this WebApplication app)
   {
+    var group = app.MapGroup("employee").WithTags("Forse Employees");
     // Commands
-    app.MapPost("/onboard", async ([FromBody] EmployeeHired @event,
+    group.MapPost("/onboard", async ([FromBody] EmployeeHired @event,
                                    [FromServices] IDocumentSession session) =>
     {
       session.Events.Append(Guid.NewGuid(), @event);
       await session.SaveChangesAsync();
     });
-    app.MapPost("/change-name", async ([FromBody] EmployeeNameChanged @event,
+    group.MapPost("/change-name", async ([FromBody] EmployeeNameChanged @event,
                                      [FromServices] IDocumentSession session) =>
     {
       session.Events.Append(Guid.NewGuid(), @event);
@@ -23,7 +24,7 @@ public static class EmployeeEndPoints
     });
 
     //Queries
-    app.MapGet("/employee/{employeeNumber}", async ([FromRoute] int employeeNumber,
+    group.MapGet("/{employeeNumber}", async ([FromRoute] int employeeNumber,
                                                     [FromServices] IQuerySession session) =>
     {
       var emp = await session.LoadAsync<ForseEmployee>(employeeNumber);

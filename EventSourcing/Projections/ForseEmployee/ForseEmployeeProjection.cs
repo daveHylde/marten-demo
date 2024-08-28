@@ -12,7 +12,7 @@ public class ForseEmployeeProjection : MultiStreamProjection<ForseEmployee, int>
     Identity<EmployeeHired>(x => x.EmployeeNumber);
     Identity<EmployeeNameChanged>(x => x.EmployeeNumber);
 
-    Identity<EmployeeSignsUpForTrip>(x => x.EmployeeId);
+    //    Identity<EmployeeSignsUpForTrip>(x => x.EmployeeId);
     Identity<RegisterDeathlyInjury>(x => x.EmployeeId);
   }
 
@@ -30,10 +30,10 @@ public class ForseEmployeeProjection : MultiStreamProjection<ForseEmployee, int>
     employee.Name = @event.NewName;
   }
 
-  public void Apply(EmployeeSignsUpForTrip @event, ForseEmployee employee)
-  {
-    employee.ForseTrips.Add(@event.Year);
-  }
+  //  public void Apply(EmployeeSignsUpForTrip @event, ForseEmployee employee)
+  //  {
+  //    employee.ForseTrips.Add(@event.Year);
+  //  }
 
   public bool ShouldDelete(RegisterDeathlyInjury @event, ForseEmployee employee) => true;
 }
