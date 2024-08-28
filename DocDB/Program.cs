@@ -1,7 +1,7 @@
-using System.Text.Json;
 using Forse.MartenDemo.DocTypes;
 using Marten;
 using Microsoft.AspNetCore.Mvc;
+using Weasel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
@@ -12,14 +12,11 @@ builder.Services.AddMarten(cfg =>
 {
   cfg.Connection("Host=localhost;Port=5432;Database=demo;Username=admin;Password=admin;");
 
-  cfg.UseSystemTextJsonForSerialization(configure: c =>
-  {
-    c.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-  });
+  cfg.UseSystemTextJsonForSerialization(EnumStorage.AsString, Casing.CamelCase);
 
   cfg.Schema.For<ForseEmployee>().Identity(x => x.EmployeeNumber);
   cfg.Schema.For<ForseEmployee>().Index(x => x.Name);
-});
+}).UseLightweightSessions();
 
 var app = builder.Build();
 app.UseSwagger();
