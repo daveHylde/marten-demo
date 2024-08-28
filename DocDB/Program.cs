@@ -1,21 +1,21 @@
+using System.Text.Json;
 using Forse.MartenDemo.DocTypes;
 using Marten;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Setup Marten
 builder.Services.AddMarten(cfg =>
 {
   cfg.Connection("Host=localhost;Port=5432;Database=demo;Username=admin;Password=admin;");
 
   cfg.UseSystemTextJsonForSerialization(configure: c =>
   {
-    c.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    c.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
   });
-  cfg.AutoCreateSchemaObjects = Weasel.Core.AutoCreate.All;
 
   cfg.Schema.For<ForseEmployee>().Identity(x => x.EmployeeNumber);
   cfg.Schema.For<ForseEmployee>().Index(x => x.Name);
@@ -25,6 +25,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+// Upsert employee
 app.MapPost("/employee", async ([FromBody] ForseEmployee employee,
                                 [FromServices] IDocumentSession session) =>
 {
@@ -33,6 +34,7 @@ app.MapPost("/employee", async ([FromBody] ForseEmployee employee,
   return Results.Created();
 });
 
+// Get employee
 app.MapGet("/employee/{id}", async ([FromRoute] int id,
                                     [FromServices] IQuerySession session) =>
 {
@@ -43,6 +45,7 @@ app.MapGet("/employee/{id}", async ([FromRoute] int id,
   //                                 .SingleAsync());
 });
 
+// Upsert forse trip
 app.MapPost("/forse-trip/{year}/{destination}", async ([FromRoute] string year,
                                                        [FromRoute] string destination,
                                                        [FromQuery] DateTime starts,
@@ -56,13 +59,14 @@ app.MapPost("/forse-trip/{year}/{destination}", async ([FromRoute] string year,
   {
     Id = year,
     Destination = destination,
-    Starts = starts,
+    PlannedStart = starts,
     Ends = ends
   });
   await session.SaveChangesAsync();
   return Results.Ok();
 });
 
+// Employee joins trip
 app.MapPut("/forse-trip/join/{year}/{id}", async ([FromRoute] int id,
                                                   [FromRoute] string year,
                                                   [FromServices] IDocumentSession session) =>
@@ -83,6 +87,7 @@ app.MapPut("/forse-trip/join/{year}/{id}", async ([FromRoute] int id,
   return Results.Ok();
 });
 
+// Ups - someone died
 app.MapPut("/forse-trip/register-deathly-injury/{year}", async ([FromRoute] string year,
                                                                 [FromServices] IDocumentSession session) =>
 {
@@ -98,6 +103,7 @@ app.MapPut("/forse-trip/register-deathly-injury/{year}", async ([FromRoute] stri
   return Results.Ok();
 });
 
+// Get trip - the easy way
 app.MapGet("/forse-trip/{year}", async ([FromRoute] string year,
                                         [FromServices] IQuerySession session) =>
 {
@@ -109,10 +115,41 @@ app.MapGet("/forse-trip/{year}", async ([FromRoute] string year,
   var result = new ForseTripDto(trip.Id,
                                 trip.Destination,
                                 [.. attendees],
-                                trip.Starts,
+                                trip.PlannedStart,
                                 trip.Ends,
                                 trip.TotalDeathsRegistered);
 
+  return Results.Ok(result);
+});
+
+// Get trip - the "I know what I'm doing"-way
+app.MapGet("/forse-trip-iknowwhatimdoing/{year}", async ([FromRoute] string year,
+                                                         [FromServices] IQuerySession session,
+                                                         CancellationToken ct) =>
+{
+  var schema = session.DocumentStore.Options.Schema;
+
+  var q2 = @$"
+			SELECT json_build_object(
+				'year', t.data->>'id',
+				'destination', t.data->>'destination',
+				'attendees', (
+					SELECT json_agg(e.data)
+					FROM {schema.For<ForseEmployee>()} e
+					WHERE (e.data->>'employeeNumber')::int = ANY(
+						SELECT jsonb_array_elements_text(t.data->'attendeeIds')::int
+					)
+				),
+				'starts', t.data->>'plannedStart',
+				'ends', t.data->>'ends',
+				'totalDeathsRegistered', (t.data->>'totalDeathsRegistered')::int
+			) AS result
+			FROM {schema.For<ForseTrip>()} t
+			WHERE t.data->>'id' = ?
+			LIMIT 1;
+		";
+
+  var result = await session.AdvancedSql.QueryAsync<ForseTripDto>(q2, ct, year);
   return Results.Ok(result);
 });
 
