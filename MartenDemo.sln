@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MartenDemo", "DocDB\MartenDemo.csproj", "{8C298EF8-F5B8-483A-90C5-985F45E87F71}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MartenDocDbDemo", "DocDB\MartenDocDbDemo.csproj", "{8C298EF8-F5B8-483A-90C5-985F45E87F71}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MartenEventSourcingDemo", "EventSourcing\MartenEventSourcingDemo.csproj", "{5F223146-1545-4353-BA27-90E92F7ACEAF}"
 EndProject
